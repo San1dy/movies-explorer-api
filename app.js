@@ -24,16 +24,16 @@ app.use(errors());
 
 app.use((error, req, res, next) => {
   const { status = 500, message } = error;
-    res.status(status).send({
-      message:
-        status === 500
-          ? `На сервере произошла ошибка${message}`
-          : `На сервере произошла ошибка${message}`,
-    });
-    next();
+  res.status(status).send({
+    message:
+      status === 500
+        ? `На сервере произошла ошибка${message}`
+        : `На сервере произошла ошибка${message}`,
   });
-  
-  app.listen(PORT, () => {
-    // eslint-disable-next-line no-console
-    console.log(`App listening on port ${PORT}`);
-  });
+  next();
+});
+
+app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`App listening on port ${PORT}`);
+});

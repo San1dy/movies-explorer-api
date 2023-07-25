@@ -1,13 +1,16 @@
 const movieSchema = require('../models/movie');
-const NotFoundError = require('../errros/NotFoundError');
-const ForbiddenError = require('../errros/ForbiddenError');
-const BadRequestError = require('../errros/BadRequestError');
+const NotFoundError = require('../errors/NotFoundError');
+const ForbiddenError = require('../errors/ForbiddenError');
+const BadRequestError = require('../errors/BadRequestError');
 
 module.exports.getMovies = (request, response, next) => {
-	movieSchema
-    .find({})
-		.then((movie) => response.status(200).send(movie))
-    .catch(next);
+  const owner = request.user._id;
+  try {
+    const movies = movieSchema.find({ owner }).populate('owner');
+    response.status(200).send(movies.reverse());
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports.deleteMovie = (request, response, next) => {
