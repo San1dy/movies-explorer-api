@@ -3,36 +3,24 @@ const NotFoundError = require('../errors/NotFoundError');
 const ForbiddenError = require('../errors/ForbiddenError');
 const BadRequestError = require('../errors/BadRequestError');
 
-module.exports.getMovies = (request, response, next) => {
-  const owner = request.user._id;
-  try {
-    const movies = movieSchema.find({ owner }).populate('owner');
-    response.status(200).send(movies.reverse());
-  } catch (err) {
-    next(err);
-  }
-};
+const {
+  INCORRECT_DATA_CREATE_MOVIES,
+  MOVIE_NOT_FOUND,
+  NOT_ENOUGH_RIGHTS,
+} = require('../utils/constants');
 
-module.exports.deleteMovie = (request, response, next) => {
-  const { movieId } = request.params;
+module.exports.getMovies = (req, res, next) => {
+  const { _id } = req.user;
 
-  movieSchema
-    .findById(movieId)
-    .then((movie) => {
-      if (!movie) {
-        throw new NotFoundError('User not found');
-      }
-      if (!movie.owner.equals(request.user._id)) {
-        return next(new ForbiddenError('Movie cannot be deleted'));
-      }
-      return movie
-        .deleteOne()
-        .then(() => response.send({ message: 'Movie was deleted' }));
-    })
+  Movie.find({})
+    .populate(['owner'])
+    .then((movies) => res.send({
+      data: movies.filter((movie) => movie.owner._id.toString() === _id),
+    }))
     .catch(next);
 };
 
-module.exports.createMovie = (request, response, next) => {
+module.exports.createMovie = (req, res, next) => {
   const {
     country,
     director,
@@ -46,7 +34,7 @@ module.exports.createMovie = (request, response, next) => {
     thumbnail,
     movieId,
   } = request.body;
-  const owner = request.user._id;
+  const { _id } = req.user;
 
   movieSchema
     .create({
@@ -61,14 +49,33 @@ module.exports.createMovie = (request, response, next) => {
       nameEN,
       thumbnail,
       movieId,
-      owner,
+      owner: _id,
     })
-    .then((movie) => response.status(201).send(movie))
+    .then((movie) => res.send({ data: movie }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequestError('Invalid data for movie creation'));
-      } else {
-        next(err);
+        return next(new BadRequestError(INCORRECT_DATA_CREATE_MOVIES));
       }
+
+      next(err);
     });
+};
+module.exports.deleteMovie = (req, res, next) => {
+  const { movieId } = req.params;
+  const { _id } = req.user;
+
+  Movie.findById(movieId)
+    .then((movie) => {
+      if (!movie) {
+        return next(new NotFoundError(MOVIE_NOT_FOUND));
+      }
+      if (_id !== movie.owner.toString()) {
+        return next(new ForbiddenError(NOT_ENOUGH_RIGHTS));
+      }
+
+      movie.remove()
+        .then(() => res.send({ data: movie }))
+        .catch(next);
+    })
+    .catch(next);
 };

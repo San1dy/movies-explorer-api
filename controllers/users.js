@@ -4,59 +4,73 @@ const userSchema = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
-const UnauthorizedError = require('../errors/UnauthorizedError');
+const { JWT_SECRET_CONFIG } = require('../utils/config');
 
-module.exports.getUser = (req, res, next) => {
-  userSchema
-    .findById(req.user._id)
+const {
+  USER_NOT_FOUND,
+  EMAIL_ALREADY_REGISTERED,
+  INCORRECT_DATA_UPDATE_USER_INFO,
+  INCORRECT_DATA_CREATE_USER,
+  TOKEN_LIFETIME,
+} = require('../utils/constants');
+
+module.exports.getUserMe = (req, res, next) => {
+  const { _id } = req.user;
+
+  User.findById(_id)
     .then((user) => {
       if (!user) {
-        throw new NotFoundError('User not found');
+        return next(new NotFoundError(USER_NOT_FOUND));
       }
-      res.status(200).send(user);
+      res.send({ data: user });
     })
     .catch(next);
 };
 
-module.exports.updateUser = (req, res, next) => {
+module.exports.updateUserProfile = (req, res, next) => {
   const { email, name } = req.body;
+  const { _id } = req.user;
 
-  try {
-    const user = userSchema.findByIdAndUpdate(
-      req.user._id,
-      {
-        email,
-        name,
-      },
-      {
-        new: true,
-        runValidators: true,
-      },
-    );
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-    res.status(200).send(user);
-  } catch (err) {
-		next(err);
-  }
+  User.findByIdAndUpdate(
+    _id,
+    { email, name },
+    {
+      new: true,
+      runValidators: true,
+    },
+  )
+    .then((user) => {
+      if (!user) {
+        return next(new NotFoundError(USER_NOT_FOUND));
+      }
+
+      res.send({ data: user });
+    })
+    .catch((err) => {
+      if (err.code === 11000) {
+        return next(new ConflictError(EMAIL_ALREADY_REGISTERED));
+      }
+
+      if (err.name === 'ValidationError') {
+        return next(new BadRequestError(INCORRECT_DATA_UPDATE_USER_INFO));
+      }
+
+      next(err);
+    });
 };
 
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
-  return userSchema
-    .findOne({ email })
-    .select('+password')
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      const passwordCheck = bcrypt.compare(password, user.password);
-      if (!user || !passwordCheck) {
-        throw new UnauthorizedError('Wrong email or password');
-      }
-      const token = jwt.sign({ _id: user._id }, 'gen', {
-        expiresIn: '7d',
-      });
-      res.send({ token, message: 'Successfully logging in' });
+      const token = jwt.sign(
+        { _id: user._id },
+        JWT_SECRET_CONFIG,
+        { expiresIn: TOKEN_LIFETIME },
+      );
+
+      res.send({ token });
     })
     .catch(next);
 };
@@ -65,34 +79,27 @@ module.exports.createUser = (req, res, next) => {
   const {
     name, email, password,
   } = req.body;
-  bcrypt
-    .hash(password, 10)
-    .then((hash) => {
-      userSchema
-        .create({
-          name,
-          email,
-          password: hash,
-        })
-        .then((user) => {
-          res.status(201).send({
-            name: user.name,
-            email: user.email,
-          });
-        })
-        .catch((err) => {
-          if (err.code === 11000) {
-            return next(
-              new ConflictError(
-                'The username with this email has already been registered',
-              ),
-            );
-          }
-          if (err.name === 'ValidationError') {
-            return next(new BadRequestError('Incorrect input'));
-          }
-          return next(err);
-        });
+
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name,
+      email,
+      password: hash,
+    }))
+    .then((user) => {
+      const userData = user.toObject();
+      delete userData.password;
+
+      res.send({ data: userData });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.code === 11000) {
+        return next(new ConflictError(EMAIL_ALREADY_REGISTERED));
+      }
+      if (err.name === 'ValidationError') {
+        return next(new BadRequestError(INCORRECT_DATA_CREATE_USER));
+      }
+
+      next(err);
+    });
 };
