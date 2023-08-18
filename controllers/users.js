@@ -1,10 +1,12 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const userSchema = require('../models/user');
-const NotFoundError = require('../errors/NotFoundError');
+
+const { JWT_SECRET_CONFIG } = require('../utils/config');
+
+const User = require('../models/user');
+const DataNotFoundError = require('../errors/DataNotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
-const { JWT_SECRET_CONFIG } = require('../utils/config');
 
 const {
   USER_NOT_FOUND,
@@ -20,7 +22,7 @@ module.exports.getUserMe = (req, res, next) => {
   User.findById(_id)
     .then((user) => {
       if (!user) {
-        return next(new NotFoundError(USER_NOT_FOUND));
+        return next(new DataNotFoundError(USER_NOT_FOUND));
       }
       res.send({ data: user });
     })
@@ -41,7 +43,7 @@ module.exports.updateUserProfile = (req, res, next) => {
   )
     .then((user) => {
       if (!user) {
-        return next(new NotFoundError(USER_NOT_FOUND));
+        return next(new DataNotFoundError(USER_NOT_FOUND));
       }
 
       res.send({ data: user });
@@ -57,22 +59,6 @@ module.exports.updateUserProfile = (req, res, next) => {
 
       next(err);
     });
-};
-
-module.exports.login = (req, res, next) => {
-  const { email, password } = req.body;
-
-  return User.findUserByCredentials(email, password)
-    .then((user) => {
-      const token = jwt.sign(
-        { _id: user._id },
-        JWT_SECRET_CONFIG,
-        { expiresIn: TOKEN_LIFETIME },
-      );
-
-      res.send({ token });
-    })
-    .catch(next);
 };
 
 module.exports.createUser = (req, res, next) => {
@@ -102,4 +88,20 @@ module.exports.createUser = (req, res, next) => {
 
       next(err);
     });
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        { _id: user._id },
+        JWT_SECRET_CONFIG,
+        { expiresIn: TOKEN_LIFETIME },
+      );
+
+      res.send({ token });
+    })
+    .catch(next);
 };

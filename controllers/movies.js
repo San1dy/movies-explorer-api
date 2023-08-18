@@ -1,7 +1,7 @@
-const movieSchema = require('../models/movie');
-const NotFoundError = require('../errors/NotFoundError');
-const ForbiddenError = require('../errors/ForbiddenError');
+const Movie = require('../models/movie');
+const DataNotFoundError = require('../errors/DataNotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
+const ForbiddenError = require('../errors/ForbiddenError');
 
 const {
   INCORRECT_DATA_CREATE_MOVIES,
@@ -28,29 +28,28 @@ module.exports.createMovie = (req, res, next) => {
     year,
     description,
     image,
-    trailer,
+    trailerLink,
     nameRU,
     nameEN,
     thumbnail,
     movieId,
-  } = request.body;
+  } = req.body;
   const { _id } = req.user;
 
-  movieSchema
-    .create({
-      country,
-      director,
-      duration,
-      year,
-      description,
-      image,
-      trailer,
-      nameRU,
-      nameEN,
-      thumbnail,
-      movieId,
-      owner: _id,
-    })
+  Movie.create({
+    country,
+    director,
+    duration,
+    year,
+    description,
+    image,
+    trailerLink,
+    nameRU,
+    nameEN,
+    thumbnail,
+    movieId,
+    owner: _id,
+  })
     .then((movie) => res.send({ data: movie }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -60,6 +59,7 @@ module.exports.createMovie = (req, res, next) => {
       next(err);
     });
 };
+
 module.exports.deleteMovie = (req, res, next) => {
   const { movieId } = req.params;
   const { _id } = req.user;
@@ -67,7 +67,7 @@ module.exports.deleteMovie = (req, res, next) => {
   Movie.findById(movieId)
     .then((movie) => {
       if (!movie) {
-        return next(new NotFoundError(MOVIE_NOT_FOUND));
+        return next(new DataNotFoundError(MOVIE_NOT_FOUND));
       }
       if (_id !== movie.owner.toString()) {
         return next(new ForbiddenError(NOT_ENOUGH_RIGHTS));

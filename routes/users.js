@@ -8,5 +8,3 @@ const {
 router.get('/me', getUserMe);
 
 router.patch('/me', validationUpdateUserProfile, updateUserProfile);
-
-module.exports = router;
