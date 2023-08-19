@@ -1,31 +1,33 @@
 const allowedCors = [
-  'localhost:3000',
-  'san1dy.nomoredomains.xyz',
+  'http://localhost:3000',
+  'https://localhost:3000',
   'https://san1dy.nomoredomains.xyz',
-  'http://san1dy.nomoredomains.xyz',
-  'https://localhost:3000/',
-  'http://localhost:3000/',
   'https://api.san1dy.nomoredomains.xyz',
-  'http://api.san1dy.nomoredomains.xyz',
 ];
 
-module.exports = (req, res, next) => {
+function handleCors(req, res, next) {
   const { origin } = req.headers;
-  const { method } = req;
 
-  const requestHeaders = req.headers['access-control-request-headers'];
-  const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
   if (allowedCors.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', true);
   }
 
-  if (method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Methods', DEFAULT_ALLOWED_METHODS);
-    res.header('Access-Control-Allow-Headers', requestHeaders);
-
-    return res.end();
+  if (req.method === 'OPTIONS') {
+    handleOptionsRequest(req, res);
+    return;
   }
 
   next();
-};
+}
+
+function handleOptionsRequest(req, res) {
+  const requestHeaders = req.headers['access-control-request-headers'];
+  const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
+
+  res.setHeader('Access-Control-Allow-Methods', DEFAULT_ALLOWED_METHODS);
+  res.setHeader('Access-Control-Allow-Headers', requestHeaders);
+  res.end();
+}
+
+module.exports = handleCors;
