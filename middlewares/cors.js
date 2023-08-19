@@ -9,7 +9,7 @@ function handleCors(req, res, next) {
   const { origin } = req.headers;
 
   if (allowedCors.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Origin', "*");
     res.setHeader('Access-Control-Allow-Credentials', true);
   }
 
