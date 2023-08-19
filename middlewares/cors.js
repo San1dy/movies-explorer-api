@@ -5,6 +5,8 @@ const allowedCors = [
   'http://san1dy.nomoredomains.xyz',
   'https://localhost:3000/',
   'http://localhost:3000/',
+  'https://api.san1dy.nomoredomains.xyz',
+  'http://api.san1dy.nomoredomains.xyz',
 ];
 
 module.exports = (req, res, next) => {
