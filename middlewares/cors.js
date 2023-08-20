@@ -5,29 +5,24 @@ const allowedCors = [
   'https://api.san1dy.nomoredomains.xyz',
 ];
 
-function handleCors(req, res, next) {
+const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
+
+module.exports = (req, res, next) => {
   const { origin } = req.headers;
+  const { method } = req;
+
+  const requestHeaders = req.headers['access-control-request-headers'];
 
   if (allowedCors.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', "*");
-    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Origin', origin);
   }
 
-  if (req.method === 'OPTIONS') {
-    handleOptionsRequest(req, res);
-    return;
+  if (method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', DEFAULT_ALLOWED_METHODS);
+    res.header('Access-Control-Allow-Headers', requestHeaders);
+
+    return res.end();
   }
 
   next();
-}
-
-function handleOptionsRequest(req, res) {
-  const requestHeaders = req.headers['access-control-request-headers'];
-  const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
-
-  res.setHeader('Access-Control-Allow-Methods', DEFAULT_ALLOWED_METHODS);
-  res.setHeader('Access-Control-Allow-Headers', requestHeaders);
-  res.end();
-}
-
-module.exports = handleCors;
+};
