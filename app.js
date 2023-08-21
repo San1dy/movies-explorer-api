@@ -16,7 +16,7 @@ const { PORT_CONFIG, DB_CONFIG } = require('./utils/config');
 
 const app = express();
 
-app.use(cors());
+
 
 mongoose.set('strictQuery', true);
 mongoose.connect(DB_CONFIG);
@@ -24,6 +24,7 @@ mongoose.connect(DB_CONFIG);
 app.use(requestLogger);
 app.use(limiter);
 app.use(helmet());
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
