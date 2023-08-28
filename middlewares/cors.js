@@ -1,8 +1,8 @@
 const allowedCors = [
-  'http://localhost:3000',
+  'https://san1dy.nomoredomains.work',
+  'http://san1dy.nomoredomains.work',
   'https://localhost:3000',
-  'https://san1dy.nomoredomains.xyz',
-  'https://api.san1dy.nomoredomains.xyz',
+  'http://localhost:3000',
 ];
 
 const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
